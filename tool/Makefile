@@ -21,3 +21,5 @@ clear:
 	rm *.out
 	rm *.gch
 	rm *.o
+libraryTest: library.cpp
+	${CC} library.h library.cpp ${SCWSLINK} -o library.out
