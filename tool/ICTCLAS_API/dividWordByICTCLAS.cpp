@@ -8,23 +8,27 @@
 #include <stdlib.h>
 #include <string.h>
 #include <iostream>
-#include  <string>
+#include <string>
 #include "ICTCLAS50.h"
 #include "../library.h"
 
 using namespace std;
 
 string divideSentence(string sentence);
+string outputMerge(int startPos, int endPos, vector<string> lawSeg, char posTag);
 
 int main(int argc, char* argv[])
 {
     char* sResult;
 	const string DIR_PATH = "../../featureCreate/data/preProcessLaw/";
+	const string POSTAG_LIB = "../../featureCreate/data/chPosTagLib";
 	vector<string> files = vector<string>();
 	vector<string> lawSeg;
 	fstream fin, fout;
 	char buf[4096];
-	string tmpStr, filePath, lawSentence;
+	string tmpStr, filePath, lawSentence, phraseBuf;
+	map<string, int> wordSegLib;
+	map<string, int>::iterator it;
 	int i,j,k, pos1, pos2;
 	char posFlag = 'N';
 
@@ -43,18 +47,17 @@ int main(int argc, char* argv[])
 			if(strlen(buf) < 2){break;}
 			lawSentence.assign(buf);
 			lawSentence = divideSentence(lawSentence);
-			cout << lawSentence << endl;
 			//Divide and get pos-tsg
 			explode(' ', lawSentence, lawSeg);
+//			cout << lawSentence << endl;
 			for(j = 0, posFlag = 'N'; j < lawSeg.size(); j++){//For each word
+				if(wordSegLib.find(lawSeg[j]) != wordSegLib.end()){wordSegLib[lawSeg[j]] = 1;}
+				else{wordSegLib[lawSeg[j]]++;}
 				if(posFlag == 'N'){//POS-merge Begin
 					if(lawSeg[j].find("/m") != string::npos){
 						posFlag = 'm';
 						pos1 = j;
-					}
-					else if(lawSeg[j].find("/v") != string::npos){
-						posFlag = 'v';
-						pos1 = j;
+						pos2 = j;
 					}
 					else if(lawSeg[j].find("/a") != string::npos 
 						|| lawSeg[j].find("/x") != string::npos){
@@ -67,45 +70,52 @@ int main(int argc, char* argv[])
 						pos1 = j;
 						pos2 = j;
 					}
-
-				}
-				else if(posFlag == 'm'){
-					if(lawSeg[j].find("/m") != string::npos){//m+....m
-						continue;
+					else if(lawSeg[j].find("/v") != string::npos){
+						posFlag = 'v';
+						pos1 = j;
+						pos2 = j;
 					}
-					else if(lawSeg[j].find("/q") != string::npos || lawSeg[j].find("/f") != string::npos){//m+....+q
+				}
+
+				else if(posFlag == 'm'){
+					if(lawSeg[j].find("/q") != string::npos || lawSeg[j].find("/f") != string::npos){//m+....+q
 						//Merge it!!
+						phraseBuf = outputMerge(pos1, j, lawSeg, posFlag);
+						if(wordSegLib.find(phraseBuf) != wordSegLib.end()){wordSegLib[phraseBuf] = 1;}
+						else{wordSegLib[phraseBuf]++;}
+						posFlag = 'N';
+					}
+					else if(j - pos1 > 3 || lawSeg[j].find("/w") != string::npos){
+						j = pos1;
 						posFlag = 'N';
 					}
 					else{//Undefine Merge
-						posFlag = 'N';
-					}
-				}
-				else if(posFlag == 'v'){
-					if(lawSeg[j].find("/n") != string::npos){//v+n
-						//Merge it!!
-						posFlag = 'N';
-					}
-					else{
-						posFlag = 'N';
+						continue;
 					}
 				}
 				else if(posFlag == 'a'){
-					if(lawSeg[j].find("/n") != string::npos //a+n+...
+					if((lawSeg[j].find("/n") != string::npos //a+n+...
 					|| lawSeg[j].find("/vn") != string::npos //a+vn+...
-					|| lawSeg[j].find("/a") != string::npos){//a+a+...
+					|| lawSeg[j].find("/a") != string::npos)//a+a+...
+					&& (j - pos1) < 3){
 						pos2 = j;
 						continue;
 					}
-					else{
+					else if(j - pos1 == 2 && lawSeg[j].find("/p") != string::npos){//a+n+p
+						phraseBuf = outputMerge(pos1, j, lawSeg, posFlag);
+						if(wordSegLib.find(phraseBuf) != wordSegLib.end()){wordSegLib[phraseBuf] = 1;}
+						else{wordSegLib[phraseBuf]++;}
+						posFlag = 'N';
+					}
+					else{//End of Merge
 						if(pos1 != pos2){
 							//Merge it!!
-							cout << "\t";
-							for(k = pos1; k < j; k++){
-								cout << lawSeg[k].substr(0, lawSeg[k].find('/'));
-							}
-							cout << endl;
-							posFlag = 'N';	
+							phraseBuf = outputMerge(pos1, j, lawSeg, posFlag);
+							if(wordSegLib.find(phraseBuf) != wordSegLib.end()){wordSegLib[phraseBuf] = 1;}
+							else{wordSegLib[phraseBuf]++;}
+						}
+						else{
+							j = pos1;
 						}
 						posFlag = 'N';
 					}
@@ -122,22 +132,47 @@ int main(int argc, char* argv[])
 						|| lawSeg[j].find("/vn") != string::npos//d+...+vn
 						|| lawSeg[j].find("/q") != string::npos){pos2++;}//d+...+q
 						if(pos1 != pos2){
-							cout << "\t";
-							for(k = pos1; k < j; k++){
-								cout << lawSeg[k].substr(0, lawSeg[k].find('/'));
-							}
-							cout << endl;
-							posFlag = 'N';	
+							//Merge it!!
+							phraseBuf = outputMerge(pos1, j, lawSeg, posFlag);
+							if(wordSegLib.find(phraseBuf) != wordSegLib.end()){wordSegLib[phraseBuf] = 1;}
+							else{wordSegLib[phraseBuf]++;}
+						}
+						else{
+							j = pos1;
 						}
 						posFlag = 'N';
 					}
 				}
-
+				else if(posFlag == 'v'){
+					if(lawSeg[j].find("/x") != string::npos && (pos1-j) < 4){//v+x
+						continue;
+					}
+					else if((pos1-j > 1) && (lawSeg[j].find("/n") != string::npos //v+x+n
+					|| lawSeg[j].find("/d") != string::npos //v+x+d
+					|| lawSeg[j].find("/v") != string::npos)){ //v+x+v
+							//Merge it!!
+						phraseBuf = outputMerge(pos1, j, lawSeg, posFlag);
+						if(wordSegLib.find(phraseBuf) != wordSegLib.end()){wordSegLib[phraseBuf] = 1;}
+						else{wordSegLib[phraseBuf]++;}
+						j = pos1;
+					}
+					else{//not merge
+						j--;
+					}
+					posFlag = 'N';
+				}
 			}
 		}
 		fin.close();
 	}
 	ICTCLAS_Exit();
+
+	fout.open(POSTAG_LIB.c_str(), ios::out);
+	for(it = wordSegLib.begin(); it != wordSegLib.end(); it++){
+		fout << it->first << "," << it-> second << endl;
+	}
+	fout.close();
+
 	return 0;
 }
 
@@ -151,4 +186,20 @@ string divideSentence(string sentence){
 	result.assign(sRst);
 	free(sRst);
 	return result;
+}
+
+
+string outputMerge(int startPos, int endPos, vector<string> lawSeg, char posTag){
+	int i,j;
+	char tmp[1];
+	tmp[0] = posTag;
+	string result = "";
+	string pos = "/";
+	pos += posTag;
+	for(i = startPos; i <= endPos; i++){
+		result += lawSeg[i].substr(0, lawSeg[i].find('/'));
+	}
+	result += pos;
+	return result;
+
 }
