@@ -18,7 +18,7 @@ class DataCountMap: public HadoopPipes::Mapper{
 						std::vector<std::string>rule;
 						fstream fin;
 						//Loading Basic information
-						fin.open("testingKeyword", ios::in);
+						fin.open("testingKeywordFix", ios::in);
 						baseLib.resize(15000);
 						while(!fin.eof()){
 								if(baseLib.size() == baseLib.capacity()){
@@ -48,56 +48,60 @@ class DataCountMap: public HadoopPipes::Mapper{
 						unsigned int loopCount = 0, loopCount2 = 0, appearCount = 0;
 						size_t pos;
 						string sentence = context.getInputValue(), sentenceBuf;
-						string subFeatureSet;
+						string subFeatureSet, word, posTag;
 						std::vector<std::string>lawInfo=HadoopUtils::splitString(context.getInputValue(), ",");
 						for(loopCount = 0; loopCount < baseLib.size()-1; loopCount++){//For each word
-								if(baseLib[loopCount] == ""){continue;}
+								if(baseLib[loopCount] == "" && baseLib[loopCount].find("/") == string::npos){continue;}
 								//context.emit(baseLib[loopCount], "SENTENCE_LENGTH:"+lawInfo[2]+":"+HadoopUtils::toString(sentence.length()/3));
-								if(sentence.find(baseLib[loopCount]) != string::npos){//Find it!!
+								word = baseLib[loopCount].substr(0,baseLib[loopCount].find("/"));
+								posTag = baseLib[loopCount].substr(baseLib[loopCount].find("/")+1);
+								if(sentence.find(word) != string::npos){//Find it!!
 									appearCount = 0;
 									//Counter Appear Time
 									sentenceBuf = sentence;
-									pos = sentence.find(baseLib[loopCount]);
+									pos = sentence.find(word);
 									while(pos != string::npos){
 										appearCount++;
 										sentenceBuf = sentenceBuf.substr(pos+3, sentenceBuf.length());
-										pos = sentenceBuf.find(baseLib[loopCount]);
+										pos = sentenceBuf.find(word);
 									}
 									subFeatureSet = "APPEAR";
 									subFeatureSet += ";LINENUM:"+lawInfo[0];
 									subFeatureSet += ";APPEAR_TIMES:"+lawInfo[1]+":"+HadoopUtils::toString(appearCount);
-									subFeatureSet += ";POSITION:"+HadoopUtils::toString(sentence.find(baseLib[loopCount])/3);
-									//Location
 									if(lawInfo[0] == "1"){
 										subFeatureSet += ";IS_TITLE";
 									}
-									if(sentence.find(baseLib[loopCount]) <= 15){
+									//Location
+									subFeatureSet += ";POSITION:"+HadoopUtils::toString(sentence.find(word)/3);
+									if(sentence.find(word) <= sentence.length()/3){
+									//if(sentence.find(word) <= 15){
 										subFeatureSet += ";LOCATE_HEAD";
 									}
-									else if(sentence.find(baseLib[loopCount]) > sentence.length()-18){
+									else if(sentence.find(word) > (sentence.length()*2)/3){
+									//else if(sentence.find(word) > sentence.length()-15){
 										subFeatureSet += ";LOCATE_TAIL";
 									}
+									//Pos Tag
+									if(posTag.find("n") != string::npos){subFeatureSet += ";POS:0";	}
+									else if(posTag.find("v") != string::npos){subFeatureSet += ";POS:1";}
+									else if(posTag.find("a") != string::npos){subFeatureSet += ";POS:2";}
+									else if(posTag.find("d") != string::npos){subFeatureSet += ";POS:3";}
+									else if(posTag.find("m") != string::npos){subFeatureSet += ";POS:4";}
+									else if(posTag.find("f") != string::npos){subFeatureSet += ";POS:5";}
+									else if(posTag.find("ph") != string::npos){subFeatureSet += ";POS:6";}
+									else{subFeatureSet += ";POS:6";}
 									//Gramma
 									for(loopCount2 = 0; loopCount2 < languageRuleCount; loopCount2++){//For each Gramma
-										if(sentence.find(baseLib[loopCount]+languageRule[loopCount2]) != string::npos
-										|| sentence.find(languageRule[loopCount2] + baseLib[loopCount]) != string::npos){
-											//context.emit(baseLib[loopCount], HadoopUtils::toString(loopCount2));
+										if(sentence.find(word+languageRule[loopCount2]) != string::npos
+										|| sentence.find(languageRule[loopCount2] + word) != string::npos){
+											//context.emit(word, HadoopUtils::toString(loopCount2));
 											subFeatureSet += ";" + languageRule[loopCount2];
 										}
 									}
 
-									context.emit(baseLib[loopCount], subFeatureSet);
-
-
-/*
-*/
+									//context.emit(baseLib[loopCount], subFeatureSet);
+									context.emit(word, subFeatureSet);
 								}
-/*
-								else{
-										//Counter
-										context.emit(baseLib[loopCount], "NOT_APPEAR");
-								}
-*/
 						}
 				}
 		private:
@@ -157,12 +161,12 @@ class DataCountReduce:public HadoopPipes::Reducer{
 					string feature, keyword = context.getInputKey();
 					vector<string>featureInfo;
 					vector<string>valueBuf;
-					string featurePosition = "60000", featureIsTitle = "0", featureLineNum = "65535";
-					string featureLocateHead = "0", featureLocateTail = "0", featureGramma[128];
+					string featurePosition = "0", featureIsTitle = "0", featureInChapter = "65535";
+					string featureLocateHead = "0", featureLocateTail = "0", featureGramma[128], featurePOSTag = "0";
 					string mapIdx;
-					int featureAppearLine=0, featureIdx = 0, featureFrequency = 0;
+					int featureAppearLine=0, featureIdx, featureFrequency = 0;
 					unsigned int loopCount = 0;
-
+					featureIdx = 0;
 					map<string, int> appearTimeInEachLaw;
 					map<string, int>::iterator it;
 					int appearLawCount = 0;
@@ -195,14 +199,17 @@ class DataCountReduce:public HadoopPipes::Reducer{
 											featureIsTitle = "1";
 									}
 									else if(valueBuf[0] == "LINENUM"){//以篇章為單位，最早出現的行數
-											if(HadoopUtils::toInt(valueBuf[1]) < HadoopUtils::toInt(featureLineNum))
-													featureLineNum = valueBuf[1];
+											if(HadoopUtils::toInt(valueBuf[1]) < HadoopUtils::toInt(featureInChapter))
+													featureInChapter = valueBuf[1];
 									}
 									else if(valueBuf[0] == "LOCATE_HEAD"){//In the Sentence head?
 											featureLocateHead = "1";
 									}
 									else if(valueBuf[0] == "LOCATE_TAIL"){//In the Sentence Tail
 											featureLocateTail = "1";
+									}
+									else if(valueBuf[0] == "POS"){//POS tag Featrue
+											featurePOSTag = valueBuf[1];
 									}
 									else if(valueBuf[0] != "NOT_APPEAR"){//For Gramma	
 											for(loopCount = 0; loopCount < languageRuleCount; loopCount++){
@@ -225,11 +232,14 @@ class DataCountReduce:public HadoopPipes::Reducer{
 					feature += "2:"+HadoopUtils::toString(featureFrequency) + " ";
 					feature += "3:"+HadoopUtils::toString(featureAppearLine) + " ";
 					feature += "4:"+ConvertToString(tfValue*idfValue*1000) + " ";
-					//feature += "5:"+featurePosition + " ";
-					feature += "6:"+featureIsTitle + " ";
-					feature += "7:"+featureLineNum + " ";
-					feature += "8:"+featureLocateHead + " ";
-					feature += "9:"+featureLocateTail + " ";
+					feature += "5:"+featurePOSTag + " ";
+//					feature += "5:"+featurePosition + " ";
+
+/*
+					feature += "6:"+featureLocateHead + " ";
+					feature += "7:"+featureLocateTail + " ";
+					feature += "8:"+featureIsTitle + " ";
+					feature += "9:"+featureInChapter + " ";
 					//Feature Gramma
 					for(loopCount = 0; loopCount < languageRuleCount; loopCount++){
 						if(featureGramma[loopCount] == "1"){
@@ -242,7 +252,7 @@ class DataCountReduce:public HadoopPipes::Reducer{
 							feature += HadoopUtils::toString(featureIdx) + ":" + HadoopUtils::toString(1) + " ";
 						}
 					}
-
+*/
 					context.emit(keyword,feature);
 				}
 				string ConvertToString(double value) {
