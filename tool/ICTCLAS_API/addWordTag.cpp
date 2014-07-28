@@ -36,6 +36,9 @@ int main(int argc, char* argv[])
 		printf("Init fails\n");
 		return -1;
 	}
+	unsigned int nItems=ICTCLAS_ImportUserDictFile("Data/userdict.txt",CODE_TYPE_UTF8);
+	ICTCLAS_SaveTheUsrDic();
+	cerr << nItems << " user-defined lexical entries added!" << endl;
 
 	fin.open(BASIC_WORD_PATH.c_str(), ios::in);
 	fout.open(OUTPUT_PATH.c_str(), ios::out);
@@ -59,8 +62,18 @@ int main(int argc, char* argv[])
 			else if(tagPool[i].find("m") != string::npos){tagRecord[4]++;}
 		}
 		flag = 2;//Find last pos.
-		if(tagPool[wordSeg.size()-2].find("k") != string::npos){flag = 3;}
-		if(wordSeg.size() == 2){outputTag = tagPool[0];}//Only one tag
+		if(tagPool[wordSeg.size()-1].find("k") != string::npos){flag = 3;}
+
+		if(wordSeg.size() == 1){outputTag = "un";}//Only one tag
+		else if(wordSeg.size() == 2){
+			if(tagPool[0] != "un"){
+				outputTag = tagPool[0];
+			}
+			else{//For Unknown tag: divide to "phrase" and "unknown word"
+				if(word.length() >= 12){outputTag = "ph";}
+				else{outputTag = "un";}
+			}
+		}//Only one tag
 		else if(tagPool[wordSeg.size()-flag].find("f") != string::npos){outputTag = "f";}
 		else if(tagPool[wordSeg.size()-flag].find("n") != string::npos
 			||	tagPool[wordSeg.size()-flag].find("q") != string::npos){
@@ -80,12 +93,16 @@ int main(int argc, char* argv[])
 string divideSentence(string sentence){
 	int nPaLen=sentence.length();
 	char* sRst=0;
+	sRst=(char*)malloc(nPaLen*6);
 	int nRstLen=0;
 	string result;
-	sRst=(char *)malloc(nPaLen*6);
 	nRstLen=ICTCLAS_ParagraphProcess(sentence.c_str(),nPaLen,sRst ,CODE_TYPE_UTF8,1);
 	result.assign(sRst);
 	free(sRst);
+	if(result.find("/") == string::npos){
+		result += "/";
+		result += "un";
+	}
 	return result;
 }
 

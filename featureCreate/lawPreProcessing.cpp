@@ -29,8 +29,8 @@ int getdir(string dir, vector<string> &files){
 }
 
 int main(int argc, char* argv[]){
-		const string SOURCE_DIR_PATH = "data/preProcessLaw/";
-		const string TARGET_DIR_PATH = "data/testLawBase/";
+		const string SOURCE_DIR_PATH = "data/notUseData/";
+		const string TARGET_DIR_PATH = "data/lawBase/";
 		const string LAW_INFO_SUM = "data/totalLawInfo";
 		vector<string> files = vector<string>();	//Save each File Name
 		char strbuf[4096];

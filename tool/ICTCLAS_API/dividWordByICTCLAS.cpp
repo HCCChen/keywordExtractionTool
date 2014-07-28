@@ -15,164 +15,98 @@
 using namespace std;
 
 string divideSentence(string sentence);
-string outputMerge(int startPos, int endPos, vector<string> lawSeg, char posTag);
+string removeTag(string sentence);
+bool filterOfChWord(string chWord);
 
 int main(int argc, char* argv[])
 {
-    char* sResult;
-	const string DIR_PATH = "../../featureCreate/data/preProcessLaw/";
-	const string POSTAG_LIB = "../../featureCreate/data/chPosTagLib";
-	vector<string> files = vector<string>();
+	const string INPUT_PATH = "../../featureCreate/data/chBase";
+	const string OUTPUT_PATH = "../../featureCreate/data/chWordCandidate";
+	const string TEST_OUTPUT_PATH = "testResult";
 	vector<string> lawSeg;
+	map<string, int> wordPool; //<chWord, freq>
+	map<string, int>::iterator iter;
 	fstream fin, fout;
 	char buf[4096];
-	string tmpStr, filePath, lawSentence, phraseBuf;
+	string tmpStr, title;
 	map<string, int> wordSegLib;
 	map<string, int>::iterator it;
 	int i,j,k, pos1, pos2;
-	char posFlag = 'N';
 
 	if(!ICTCLAS_Init())			  
 	{	printf("Init fails\n");
 		return -1;	}
 
-	getdir(DIR_PATH, files);
-	for(i = 0; i < files.size(); i++){//For each Law
-		if(files[i].length() < 3){continue;}
-		filePath = DIR_PATH + files[i];
-		fin.open(filePath.c_str(), ios::in);
-		while(!fin.eof()){
-			lawSeg.clear();
-			fin.getline(buf, 4096);
-			if(strlen(buf) < 2){break;}
-			lawSentence.assign(buf);
-			lawSentence = divideSentence(lawSentence);
-			//Divide and get pos-tsg
-			explode(' ', lawSentence, lawSeg);
-//			cout << lawSentence << endl;
-			for(j = 0, posFlag = 'N'; j < lawSeg.size(); j++){//For each word
-				if(wordSegLib.find(lawSeg[j]) != wordSegLib.end()){wordSegLib[lawSeg[j]] = 1;}
-				else{wordSegLib[lawSeg[j]]++;}
-				if(posFlag == 'N'){//POS-merge Begin
-					if(lawSeg[j].find("/m") != string::npos){
-						posFlag = 'm';
-						pos1 = j;
-						pos2 = j;
-					}
-					else if(lawSeg[j].find("/a") != string::npos 
-						|| lawSeg[j].find("/x") != string::npos){
-						posFlag = 'a';
-						pos1 = j;
-						pos2 = j;
-					}
-					else if(lawSeg[j].find("/d") != string::npos){ 
-						posFlag = 'd';
-						pos1 = j;
-						pos2 = j;
-					}
-					else if(lawSeg[j].find("/v") != string::npos){
-						posFlag = 'v';
-						pos1 = j;
-						pos2 = j;
-					}
-				}
-
-				else if(posFlag == 'm'){
-					if(lawSeg[j].find("/q") != string::npos || lawSeg[j].find("/f") != string::npos){//m+....+q
-						//Merge it!!
-						phraseBuf = outputMerge(pos1, j, lawSeg, posFlag);
-						if(wordSegLib.find(phraseBuf) != wordSegLib.end()){wordSegLib[phraseBuf] = 1;}
-						else{wordSegLib[phraseBuf]++;}
-						posFlag = 'N';
-					}
-					else if(j - pos1 > 3 || lawSeg[j].find("/w") != string::npos){
-						j = pos1;
-						posFlag = 'N';
-					}
-					else{//Undefine Merge
-						continue;
-					}
-				}
-				else if(posFlag == 'a'){
-					if((lawSeg[j].find("/n") != string::npos //a+n+...
-					|| lawSeg[j].find("/vn") != string::npos //a+vn+...
-					|| lawSeg[j].find("/a") != string::npos)//a+a+...
-					&& (j - pos1) < 3){
-						pos2 = j;
-						continue;
-					}
-					else if(j - pos1 == 2 && lawSeg[j].find("/p") != string::npos){//a+n+p
-						phraseBuf = outputMerge(pos1, j, lawSeg, posFlag);
-						if(wordSegLib.find(phraseBuf) != wordSegLib.end()){wordSegLib[phraseBuf] = 1;}
-						else{wordSegLib[phraseBuf]++;}
-						posFlag = 'N';
-					}
-					else{//End of Merge
-						if(pos1 != pos2){
-							//Merge it!!
-							phraseBuf = outputMerge(pos1, j, lawSeg, posFlag);
-							if(wordSegLib.find(phraseBuf) != wordSegLib.end()){wordSegLib[phraseBuf] = 1;}
-							else{wordSegLib[phraseBuf]++;}
-						}
-						else{
-							j = pos1;
-						}
-						posFlag = 'N';
-					}
-				}
-				else if(posFlag == 'd'){
-					if(lawSeg[j].find("/a") != string::npos //d+a
-					|| lawSeg[j].find("/n") != string::npos //d+n
-					|| lawSeg[j].find("/x") != string::npos){//d+x
-						pos2 = j;
-						continue;
-					}
-					else{
-						if(lawSeg[j].find("/n") != string::npos//d+...+n
-						|| lawSeg[j].find("/vn") != string::npos//d+...+vn
-						|| lawSeg[j].find("/q") != string::npos){pos2++;}//d+...+q
-						if(pos1 != pos2){
-							//Merge it!!
-							phraseBuf = outputMerge(pos1, j, lawSeg, posFlag);
-							if(wordSegLib.find(phraseBuf) != wordSegLib.end()){wordSegLib[phraseBuf] = 1;}
-							else{wordSegLib[phraseBuf]++;}
-						}
-						else{
-							j = pos1;
-						}
-						posFlag = 'N';
-					}
-				}
-				else if(posFlag == 'v'){
-					if(lawSeg[j].find("/x") != string::npos && (pos1-j) < 4){//v+x
-						continue;
-					}
-					else if((pos1-j > 1) && (lawSeg[j].find("/n") != string::npos //v+x+n
-					|| lawSeg[j].find("/d") != string::npos //v+x+d
-					|| lawSeg[j].find("/v") != string::npos)){ //v+x+v
-							//Merge it!!
-						phraseBuf = outputMerge(pos1, j, lawSeg, posFlag);
-						if(wordSegLib.find(phraseBuf) != wordSegLib.end()){wordSegLib[phraseBuf] = 1;}
-						else{wordSegLib[phraseBuf]++;}
-						j = pos1;
-					}
-					else{//not merge
-						j--;
-					}
-					posFlag = 'N';
-				}
+	unsigned int nItems=ICTCLAS_ImportUserDictFile("Data/userdict.txt",CODE_TYPE_UTF8);
+	ICTCLAS_SaveTheUsrDic();
+	cerr << nItems << " user-defined lexical entries added!" << endl;
+	//Load File and Divide it
+	fin.open(INPUT_PATH.c_str(), ios::in);
+	fout.open(OUTPUT_PATH.c_str(), ios::out);
+	while(!fin.eof()){//For each Law
+		fin.getline(buf, 4096);
+		tmpStr.assign(buf);
+		//Special Case
+		if(tmpStr.find("章　") != string::npos){//Chapter title
+			title = tmpStr.substr(tmpStr.find("章　")+6);
+			if(wordSegLib.find(title) == wordSegLib.end()){wordSegLib[title] = 1;}
+			else{wordSegLib[title]++;}
+		}
+		if(tmpStr.find("章 ") != string::npos){//Chapter title
+			title = tmpStr.substr(tmpStr.find("章 ")+4);
+			if(wordSegLib.find(title) == wordSegLib.end()){wordSegLib[title] = 1;}
+			else{wordSegLib[title]++;}
+		}
+		if(tmpStr.find("、") != string::npos && tmpStr.find("。") != string::npos){
+			title = tmpStr.substr(tmpStr.find("、")+3, tmpStr.find("。")-tmpStr.find("、")-3);
+			if(title.length() < 24 && title.find("或") == string::npos && title.find("及") == string::npos
+			&& title.find("且") == string::npos && title.find("、") == string::npos){//Max to 8 word
+				if(wordSegLib.find(title) == wordSegLib.end()){wordSegLib[title] = 1;}
+				else{wordSegLib[title]++;}
 			}
 		}
-		fin.close();
-	}
-	ICTCLAS_Exit();
+		//Regualar case
+		tmpStr = divideSentence(buf);
+		tmpStr = removeTag(tmpStr);
+		explode(' ', tmpStr, lawSeg);
 
-	fout.open(POSTAG_LIB.c_str(), ios::out);
-	for(it = wordSegLib.begin(); it != wordSegLib.end(); it++){
-		fout << it->first << "," << it-> second << endl;
+		for(i = lawSeg.size()-1; i > 0; i--){//Merge Word
+			if((lawSeg[i] == "元" || lawSeg[i] == "年" || lawSeg[i] == "條"  || lawSeg[i] == "項" || lawSeg[i] == "人" || lawSeg[i] == "日") && i != 0){
+				lawSeg[i-1] = lawSeg[i-1] + lawSeg[i];
+				lawSeg.erase(lawSeg.begin()+i);
+			}
+			else if((lawSeg[i] == "萬元" || lawSeg[i] == "萬人" || lawSeg[i] == "之人" || lawSeg[i] == "小時") && i != 0){
+				lawSeg[i-1] = lawSeg[i-1] + lawSeg[i];
+				lawSeg.erase(lawSeg.begin()+i);
+			}
+		}
+		for(i = 0; i < lawSeg.size(); i++){//For each Word seg
+			//Filter
+			if(lawSeg[i].find("　") != string::npos || lawSeg[i].find("（") != string::npos 
+			|| lawSeg[i].find("）") != string::npos || lawSeg[i].find("、") != string::npos
+			|| lawSeg[i].find("「") != string::npos || lawSeg[i].find("」") != string::npos
+			|| lawSeg[i].length() % 3 != 0){
+				continue;
+			}
+			//Record it!
+			if(wordSegLib.find(lawSeg[i]) == wordSegLib.end()){
+				wordSegLib[lawSeg[i]] = 1;
+			}
+			else{
+				wordSegLib[lawSeg[i]]++;
+			}
+		}
 	}
+	for(iter = wordSegLib.begin(); iter != wordSegLib.end(); iter++){
+		tmpStr = iter->first;
+		if(filterOfChWord(tmpStr) == true){
+			fout << iter->first << endl;
+		}
+	}
+	fin.close();
 	fout.close();
 
+	ICTCLAS_Exit();
 	return 0;
 }
 
@@ -189,17 +123,29 @@ string divideSentence(string sentence){
 }
 
 
-string outputMerge(int startPos, int endPos, vector<string> lawSeg, char posTag){
-	int i,j;
-	char tmp[1];
-	tmp[0] = posTag;
-	string result = "";
-	string pos = "/";
-	pos += posTag;
-	for(i = startPos; i <= endPos; i++){
-		result += lawSeg[i].substr(0, lawSeg[i].find('/'));
+string removeTag(string sentence){
+	int i, pos;
+	string tmpStr, finalResult = "";
+	vector<string> wordSeg;
+	explode(' ', sentence, wordSeg);
+	for(i = 0; i < wordSeg.size(); i++){
+		tmpStr = wordSeg[i].substr(0, wordSeg[i].find('/'));
+		finalResult += tmpStr + " ";
 	}
-	result += pos;
-	return result;
+	return finalResult;
+}
 
+bool filterOfChWord(string chWord){
+	int i;
+	if(chWord.length() < 6){return false;}
+	if(chWord.find("，") != string::npos || chWord.find("。") != string::npos 
+	|| chWord.find("；") != string::npos || chWord.find("：") != string::npos
+	|| chWord.find('(') != string::npos || chWord.find(')') != string::npos){
+		return false;
+	}
+	for(i = 0; i < chWord.length(); i++){
+		if(chWord[i] >= '0' && chWord[i] <= '9'){return false;}
+		if(chWord[i] == '(' && chWord[i] == ')'){return false;}
+	}
+	return true;
 }

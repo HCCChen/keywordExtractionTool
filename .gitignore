@@ -1,2 +1,10 @@
 *.out
+*.o
+*.log
+*.swp
 featureCreate/data/
+tool/ICTCLAS_API/Data/
+data/
+SVMLearning/
+libsvm-3.17/
+testHadoop/

@@ -11,13 +11,13 @@ using namespace std;
 int main(int argc, char* argv[]){
 	const string POS_FILE_PATH = "../featureCreate/trainingPosBase";
 	const string NEG_FILE_PATH = "../featureCreate/trainingNegBase";
-	const string TEST_FILE_PATH = "../featureCreate/testingBase";
-	/*
+//	const string TEST_FILE_PATH = "../featureCreate/testingBase";
 	const string TRAIN_DATA_PATH = "../libsvm-3.17/trainingData";
 	const string TRAIN_WORD_PATH = "../libsvm-3.17/trainingKeyword";
-	*/
+	/*
 	const string TRAIN_DATA_PATH = "../libsvm-3.17/testingData";
 	const string TRAIN_WORD_PATH = "../libsvm-3.17/testingKeyword";
+	*/
 	fstream fin, fout1, fout2;
 	char buf[4096];
 	string tmpStr, rowData[2];
@@ -26,7 +26,6 @@ int main(int argc, char* argv[]){
 	fout1.open(TRAIN_DATA_PATH.c_str(), ios::out);
 	fout2.open(TRAIN_WORD_PATH.c_str(), ios::out);
 	//Load file
-	/*
 	fin.open(POS_FILE_PATH.c_str(), ios::in);
 	while(!fin.eof()){
 		fin.getline(buf, 4096);
@@ -50,7 +49,7 @@ int main(int argc, char* argv[]){
 		fout2 << rowData[0] << endl;
 	}
 	fin.close();
-	*/
+	/*
 	fin.open(TEST_FILE_PATH.c_str(), ios::in);
 	while(!fin.eof()){
 		fin.getline(buf, 4096);
@@ -63,7 +62,7 @@ int main(int argc, char* argv[]){
 		fout2 << rowData[0] << endl;
 	}
 	fin.close();	
-
+*/
 	fout1.close();
 	fout2.close();
 	

@@ -73,23 +73,24 @@ class DataCountMap: public HadoopPipes::Mapper{
 									}
 									//Location
 									subFeatureSet += ";POSITION:"+HadoopUtils::toString(sentence.find(word)/3);
-									if(sentence.find(word) <= sentence.length()/3){
-									//if(sentence.find(word) <= 15){
+									//if(sentence.find(word) <= sentence.length()/3){
+							
+									if(sentence.find(word) < 3){
 										subFeatureSet += ";LOCATE_HEAD";
 									}
-									else if(sentence.find(word) > (sentence.length()*2)/3){
-									//else if(sentence.find(word) > sentence.length()-15){
+									//else if(sentence.find(word) > (sentence.length()*2)/3){
+									else if(sentence.find(word) > sentence.length()-word.length()-6){
 										subFeatureSet += ";LOCATE_TAIL";
 									}
 									//Pos Tag
-									if(posTag.find("n") != string::npos){subFeatureSet += ";POS:0";	}
-									else if(posTag.find("v") != string::npos){subFeatureSet += ";POS:1";}
-									else if(posTag.find("a") != string::npos){subFeatureSet += ";POS:2";}
-									else if(posTag.find("d") != string::npos){subFeatureSet += ";POS:3";}
-									else if(posTag.find("m") != string::npos){subFeatureSet += ";POS:4";}
-									else if(posTag.find("f") != string::npos){subFeatureSet += ";POS:5";}
-									else if(posTag.find("ph") != string::npos){subFeatureSet += ";POS:6";}
-									else{subFeatureSet += ";POS:6";}
+									if(posTag.find("n") != string::npos){subFeatureSet += ";POS:1";	}
+									else if(posTag.find("v") != string::npos){subFeatureSet += ";POS:2";}
+									else if(posTag.find("a") != string::npos){subFeatureSet += ";POS:3";}
+									else if(posTag.find("d") != string::npos){subFeatureSet += ";POS:4";}
+									else if(posTag.find("m") != string::npos){subFeatureSet += ";POS:5";}
+									else if(posTag.find("f") != string::npos){subFeatureSet += ";POS:6";}
+									else if(posTag.find("ph") != string::npos){subFeatureSet += ";POS:7";}
+									else{subFeatureSet += ";POS:8";}
 									//Gramma
 									for(loopCount2 = 0; loopCount2 < languageRuleCount; loopCount2++){//For each Gramma
 										if(sentence.find(word+languageRule[loopCount2]) != string::npos
@@ -161,8 +162,9 @@ class DataCountReduce:public HadoopPipes::Reducer{
 					string feature, keyword = context.getInputKey();
 					vector<string>featureInfo;
 					vector<string>valueBuf;
-					string featurePosition = "0", featureIsTitle = "0", featureInChapter = "65535";
-					string featureLocateHead = "0", featureLocateTail = "0", featureGramma[128], featurePOSTag = "0";
+					string featurePosition = "0", featureInChapter = "65535";
+					string featureGramma[128], featurePOSTag = "0";
+					int featureLocateHead = 0, featureLocateTail = 0, featureIsTitle = 0;
 					string mapIdx;
 					int featureAppearLine=0, featureIdx, featureFrequency = 0;
 					unsigned int loopCount = 0;
@@ -196,17 +198,17 @@ class DataCountReduce:public HadoopPipes::Reducer{
 											}
 									}
 									else if(valueBuf[0] == "IS_TITLE"){//Is in the Title word
-											featureIsTitle = "1";
+											featureIsTitle=1;
 									}
 									else if(valueBuf[0] == "LINENUM"){//以篇章為單位，最早出現的行數
 											if(HadoopUtils::toInt(valueBuf[1]) < HadoopUtils::toInt(featureInChapter))
 													featureInChapter = valueBuf[1];
 									}
 									else if(valueBuf[0] == "LOCATE_HEAD"){//In the Sentence head?
-											featureLocateHead = "1";
+											featureLocateHead=1;
 									}
 									else if(valueBuf[0] == "LOCATE_TAIL"){//In the Sentence Tail
-											featureLocateTail = "1";
+											featureLocateTail=1;
 									}
 									else if(valueBuf[0] == "POS"){//POS tag Featrue
 											featurePOSTag = valueBuf[1];
@@ -233,26 +235,23 @@ class DataCountReduce:public HadoopPipes::Reducer{
 					feature += "3:"+HadoopUtils::toString(featureAppearLine) + " ";
 					feature += "4:"+ConvertToString(tfValue*idfValue*1000) + " ";
 					feature += "5:"+featurePOSTag + " ";
-//					feature += "5:"+featurePosition + " ";
-
-/*
-					feature += "6:"+featureLocateHead + " ";
-					feature += "7:"+featureLocateTail + " ";
-					feature += "8:"+featureIsTitle + " ";
-					feature += "9:"+featureInChapter + " ";
+					//feature += "6:"+featurePosition + " ";
+					feature += "7:"+HadoopUtils::toString(featureLocateHead) + " ";
+					feature += "8:"+HadoopUtils::toString(featureLocateTail) + " ";
+					feature += "9:"+HadoopUtils::toString(featureIsTitle) + " ";
+					feature += "10:"+featureInChapter + " ";
 					//Feature Gramma
 					for(loopCount = 0; loopCount < languageRuleCount; loopCount++){
 						if(featureGramma[loopCount] == "1"){
-							feature += HadoopUtils::toString(loopCount+10) + ":" + featureGramma[loopCount] + " ";
+							feature += HadoopUtils::toString(loopCount+11) + ":" + featureGramma[loopCount] + " ";
 						}
 					}
 					//Feature: Special Word
-					for(loopCount = 0, featureIdx = 10 + languageRuleCount; loopCount < specialLibCount; loopCount++, featureIdx++){
+					for(loopCount = 0, featureIdx = 11 + languageRuleCount; loopCount < specialLibCount; loopCount++, featureIdx++){
 						if(specialLib[loopCount] != "" && keyword.find(specialLib[loopCount]) != string::npos){
 							feature += HadoopUtils::toString(featureIdx) + ":" + HadoopUtils::toString(1) + " ";
 						}
 					}
-*/
 					context.emit(keyword,feature);
 				}
 				string ConvertToString(double value) {

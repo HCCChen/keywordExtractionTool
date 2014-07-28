@@ -3,6 +3,7 @@
 printf "\E[1;32;40mBegin Of Experiment! \E[0m\n"
 printf "\E[0;33;40mFeature Creating \E[0m\n"
 resultPath=experimentRecord
+recordPath=../libsvm-3.17/statisticRecord
 #create feature
 cd featureCreate/
 ./RunHadoop.sh
@@ -20,6 +21,7 @@ cd ../
 printf "\E[0;33;40mExperiment1: train->test \E[0m\n"
 ./svm-train trainSet model
 ./svm-predict testSet model predictResult > $resultPath
+rm $recordPath
 #Experiment 2
 printf "\E[0;33;40mExperiment2: test->train \E[0m\n"
 ./svm-train testSet model
@@ -40,6 +42,9 @@ do
  python ./tools/subset.py -s 1 trainingData 14000 trainSet testSet
  ./svm-train trainSet model
  ./svm-predict testSet model predictResult >> $resultPath
+ cd ../tool
+ ./calEperimentResult.out >> $recordPath
+ cd ../libsvm-3.17
  i=`expr $i + 1` 
 done 
 

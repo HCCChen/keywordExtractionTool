@@ -12,11 +12,12 @@ printf "\e[1;33;40mUpload Map-Reduce Program\e[0m\n"
 hadoop fs -put wordcount /user/hsng/bin/
 printf "\e[1;33;40mUpload Map-Reduce Data\e[0m\n"
 hadoop fs -put data/testLawBase/* /user/hsng/inputFile/
+#hadoop fs -put data/lawBase/* /user/hsng/inputFile/
 
 printf "\e[1;33;40m===========For Training Positive Data===========\e[0m\n"
 cp data/trainingPosKeyword data/testingKeyword
 cd ../tool/ICTCLAS_API/
-./addWordTag.cpp
+./addWordTag.o
 cd ../../featureCreate/
 
 printf "\e[1;33;40mExecute Map-Reduce!\e[0m\n"
@@ -24,11 +25,12 @@ hadoop pipes -D hadoop.pipes.java.recordreader=true -D hadoop.pipes.java.recordw
 printf "\e[1;33;40mOutput Result File to 'trainingPosBase'\e[0m\n"
 hadoop fs -cat output/part-* > trainingPosBase
 
+
 printf "\e[1;33;40m===========For Training Negative Data===========\e[0m\n"
 hadoop fs -rmr output
 cp data/trainingNegKeyword data/testingKeyword
 cd ../tool/ICTCLAS_API/
-./addWordTag.cpp
+./addWordTag.o
 cd ../../featureCreate/
 
 printf "\e[1;33;40mExecute Map-Reduce!\e[0m\n"
