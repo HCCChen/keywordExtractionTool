@@ -8,7 +8,7 @@
 	<TagSet>ICTPOS.map</TagSet>//词性标注集映射文件
 	<Evaluation>PKU</Evaluation>//None,UPenn;评测类型，专为国际评测定制，普通用户不能修改
 	<GranularityContorl>On</GranularityContorl>//粒度控制 如：中国 人 ，中国人
-	<UserDict>On</UserDict>//On：User Dictionary applied; Off: not applied；
+	<UserDict>Off</UserDict>//On：User Dictionary applied; Off: not applied；
 	<FieldDict>On</FieldDict>//On：Field Dictionary applied; Off: not applied；
 	<UserDictPrior>On</UserDictPrior>//用户词典优先
 	<Log>On</Log>//On, Off；例如：Off: 关闭日志功能；On: 打开日志功能

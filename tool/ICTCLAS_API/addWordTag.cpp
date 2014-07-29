@@ -20,8 +20,8 @@ string outputMerge(int startPos, int endPos, vector<string> lawSeg, char posTag)
 int main(int argc, char* argv[])
 {
 	//Initialize 
-	const string BASIC_WORD_PATH = "../../featureCreate/data/testingKeyword";
-	const string OUTPUT_PATH = "../../featureCreate/data/testingKeywordFix";
+	const string BASIC_WORD_PATH = "../../data/trainingPosKeyword";
+	const string OUTPUT_PATH = "../../data/trainingPosKeywordPosTag";
 	fstream fin, fout;
 	char buf[4096];
 	string tmpStr, word, outputTag;
@@ -36,10 +36,6 @@ int main(int argc, char* argv[])
 		printf("Init fails\n");
 		return -1;
 	}
-	unsigned int nItems=ICTCLAS_ImportUserDictFile("Data/userdict.txt",CODE_TYPE_UTF8);
-	ICTCLAS_SaveTheUsrDic();
-	cerr << nItems << " user-defined lexical entries added!" << endl;
-
 	fin.open(BASIC_WORD_PATH.c_str(), ios::in);
 	fout.open(OUTPUT_PATH.c_str(), ios::out);
 	while(!fin.eof()){//For each word
@@ -47,11 +43,13 @@ int main(int argc, char* argv[])
 		tmpStr.assign(buf);
 		if(tmpStr.length() < 3){continue;}
 		tmpStr = divideSentence(tmpStr);
-		//cout << tmpStr << endl;
 		for(i = 0; i < 8; i++){tagRecord[i] = 0;}
-		outputTag = "ph";
+		outputTag = "n";
 		//Analysis and Merge Pos tag
+		wordSeg.clear();
+		wordSeg.resize(0);
 		explode(' ', tmpStr, wordSeg);
+		cout << wordSeg.size() << " , " << tmpStr << endl;
 		for(i = 0, word = ""; i < wordSeg.size(); i++){//Analysis each word
 			word += wordSeg[i].substr(0, wordSeg[i].find('/'));
 			tagPool[i] = wordSeg[i].substr(wordSeg[i].find('/')+1);
@@ -64,24 +62,19 @@ int main(int argc, char* argv[])
 		flag = 2;//Find last pos.
 		if(tagPool[wordSeg.size()-1].find("k") != string::npos){flag = 3;}
 
-		if(wordSeg.size() == 1){outputTag = "un";}//Only one tag
-		else if(wordSeg.size() == 2){
-			if(tagPool[0] != "un"){
-				outputTag = tagPool[0];
+		//Add output tag
+		if(wordSeg.size() == 2){//Only one tag
+			outputTag = tagPool[0];
+			//cout << tmpStr << " : " << outputTag << endl;
+		}
+		else if(wordSeg.size() > 2){//Find last tag
+			if(tagPool[wordSeg.size()-flag].find("k") != string::npos){
+				outputTag = "n";
 			}
-			else{//For Unknown tag: divide to "phrase" and "unknown word"
-				if(word.length() >= 12){outputTag = "ph";}
-				else{outputTag = "un";}
+			else{
+				outputTag = tagPool[wordSeg.size()-flag];
 			}
 		}//Only one tag
-		else if(tagPool[wordSeg.size()-flag].find("f") != string::npos){outputTag = "f";}
-		else if(tagPool[wordSeg.size()-flag].find("n") != string::npos
-			||	tagPool[wordSeg.size()-flag].find("q") != string::npos){
-			outputTag = "n";
-		}
-		else if(tagPool[wordSeg.size()-flag].find("v") != string::npos){outputTag = "v";}
-		else if(tagRecord[1] + tagRecord[2] > tagRecord[0] + tagRecord[3]){outputTag = "n";}
-		else if(tagRecord[1] + tagRecord[2] < tagRecord[0] + tagRecord[3]){outputTag = "v";}
 		fout << word << "/" << outputTag << endl;
 	}
 	fin.close();
@@ -101,7 +94,7 @@ string divideSentence(string sentence){
 	free(sRst);
 	if(result.find("/") == string::npos){
 		result += "/";
-		result += "un";
+		result += "n";
 	}
 	return result;
 }
