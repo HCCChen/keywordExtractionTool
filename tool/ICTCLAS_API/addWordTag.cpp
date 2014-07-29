@@ -20,8 +20,8 @@ string outputMerge(int startPos, int endPos, vector<string> lawSeg, char posTag)
 int main(int argc, char* argv[])
 {
 	//Initialize 
-	const string BASIC_WORD_PATH = "../../data/trainingPosKeyword";
-	const string OUTPUT_PATH = "../../data/trainingPosKeywordPosTag";
+	const string BASIC_WORD_PATH = "../../data/trainingNegKeyword";
+	const string OUTPUT_PATH = "../../data/trainingNegKeywordPosTag";
 	fstream fin, fout;
 	char buf[4096];
 	string tmpStr, word, outputTag;

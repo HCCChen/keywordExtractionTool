@@ -7,9 +7,9 @@ int main(){
 	string specialWordFile = "../data/languageBase/specialWordLib";
 	string wordFormFile = "../data/languageBase/wordFormFile";
 
-	string wordFileName = "../data/trainingPosKeyword";
+	string wordFileName = "../data/trainingPosKeywordPosTag";
 	string outputFileName = "../data/trainingPosData";
-	string wordFileName2 = "../data/trainingNegKeyword";
+	string wordFileName2 = "../data/trainingNegKeywordPosTag";
 	string outputFileName2 = "../data/trainingNegData";
 	string wordFileName3 = "../data/testingPosKeyword";
 	string outputFileName3 = "../data/testingPosData";
@@ -28,6 +28,7 @@ int main(){
 	Analysis analysis(lawPath, specialWordFile, wordFormFile);
 	cout << "從：" << wordFileName << "建立特徵值" <<endl;
 	analysis.createScale(wordFileName, outputFileName, "+1");
+	analysis.createScale(wordFileName2, outputFileName2, "-1");
 	//輸出所需時間
 	end = time(NULL);
 	timeCnt = end - begin;

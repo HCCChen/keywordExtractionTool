@@ -13,9 +13,9 @@ using namespace std;
 
 int main(int argc, char* argv[]){
 	const string SOURCE_DATA_PATH = "../libsvm-3.17/experimentRecord";
-	const string RESULT_DATA_PATH = "../featureCreate/data/experimentResult";
+	const string RESULT_DATA_PATH = "../data/experimentResult";
 	const string SOURCE_DATA_PATH2 = "../libsvm-3.17/statisticRecord";
-	const string RESULT_DATA_PATH2 = "../featureCreate/data/statisticResult";
+	const string RESULT_DATA_PATH2 = "../data/statisticResult";
 	char buf[4096];
 	string tmpStr, strSeq;
 	fstream fin, fout;
