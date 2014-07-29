@@ -6,6 +6,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <math.h>
 
 using namespace std;
 
@@ -224,7 +225,7 @@ class DataCountReduce:public HadoopPipes::Reducer{
 							}
 					}
 					//TF-IDF
-					idfValue = (double)appearLawCount/(double)totalLawCount;
+					idfValue = log((double)totalLawCount/(double)appearLawCount);
 					for(it = appearTimeInEachLaw.begin(), tfValue = 0; it != appearTimeInEachLaw.end(); ++it){
 						mapIdx = it->first;
 						tfValue += (double)appearTimeInEachLaw[mapIdx]/(double)lawLength[mapIdx];
@@ -233,7 +234,7 @@ class DataCountReduce:public HadoopPipes::Reducer{
 					feature = "+1 1:"+HadoopUtils::toString(keyword.length()/3) + " ";
 					feature += "2:"+HadoopUtils::toString(featureFrequency) + " ";
 					feature += "3:"+HadoopUtils::toString(featureAppearLine) + " ";
-					feature += "4:"+ConvertToString(tfValue*idfValue*1000) + " ";
+					feature += "4:"+ConvertToString(tfValue*idfValue) + " ";
 					feature += "5:"+featurePOSTag + " ";
 					//feature += "6:"+featurePosition + " ";
 					feature += "7:"+HadoopUtils::toString(featureLocateHead) + " ";

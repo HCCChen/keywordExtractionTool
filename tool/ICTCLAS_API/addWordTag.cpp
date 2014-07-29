@@ -20,8 +20,10 @@ string outputMerge(int startPos, int endPos, vector<string> lawSeg, char posTag)
 int main(int argc, char* argv[])
 {
 	//Initialize 
-	const string BASIC_WORD_PATH = "../../data/trainingNegKeyword";
-	const string OUTPUT_PATH = "../../data/trainingNegKeywordPosTag";
+	//const string BASIC_WORD_PATH = "../../data/trainingNegKeyword";
+	//const string OUTPUT_PATH = "../../data/trainingNegKeywordPosTag";
+	const string BASIC_WORD_PATH = "../../featureCreate/data/testingKeyword";
+	const string OUTPUT_PATH = "../../featureCreate/data/testingKeywordFix";
 	fstream fin, fout;
 	char buf[4096];
 	string tmpStr, word, outputTag;
@@ -49,7 +51,6 @@ int main(int argc, char* argv[])
 		wordSeg.clear();
 		wordSeg.resize(0);
 		explode(' ', tmpStr, wordSeg);
-		cout << wordSeg.size() << " , " << tmpStr << endl;
 		for(i = 0, word = ""; i < wordSeg.size(); i++){//Analysis each word
 			word += wordSeg[i].substr(0, wordSeg[i].find('/'));
 			tagPool[i] = wordSeg[i].substr(wordSeg[i].find('/')+1);
